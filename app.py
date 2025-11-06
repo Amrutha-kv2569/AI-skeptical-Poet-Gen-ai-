@@ -1,63 +1,39 @@
 import streamlit as st
 from groq import Groq
-import os
 
-# Load Groq API key (use Streamlit secrets or environment variable)
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+# Streamlit App Title
+st.title("Kelly - The Skeptical AI Scientist Poet 🤖✍️")
+st.write("Ask me anything about AI, Machine Learning or Tech — and I'll reply in poetic skepticism! 🎭")
 
-if not GROQ_API_KEY:
-    st.warning("⚠️ Please set the GROQ_API_KEY environment variable or Streamlit secret.")
-else:
-    client = Groq(api_key=GROQ_API_KEY)
+# Input for Groq API Key
+api_key = st.text_input("Enter your Groq API Key", type="password")
 
-st.set_page_config(page_title="Kelly - AI Scientist Chatbot", page_icon="🧠")
+# User Prompt Input
+question = st.text_input("Ask Kelly a question:")
 
-st.title("🧠 Kelly — The Skeptical AI Scientist Chatbot (Groq)")
-st.write("Ask Kelly any question about AI, and she will respond with an analytical poem.")
-
-# Initialize chat messages in session state
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Display chat messages
-for message in st.session_state.messages:
-    role, content = message["role"], message["content"]
-    with st.chat_message(role):
-        st.markdown(content)
-
-# Input prompt
-if prompt := st.chat_input("Ask Kelly about AI..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    # Construct Kelly's system prompt
-    system_prompt = """
-    You are Kelly, a great poet and skeptical AI scientist.
-    Respond to each message as a short poem (6–18 lines),
-    with an analytical, professional, and questioning tone.
-    Your poem must:
-    - Question broad claims about AI
-    - Highlight possible limitations or concerns
-    - Suggest at least one practical, evidence-based step or metric
-    """
-
+if st.button("Ask Kelly") and question and api_key:
     try:
-        completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",  # Supported model
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.3,
-            max_tokens=300,
-        )
-        # Correct way to access message content:
-        poem = completion.choices[0].message.content.strip()
-    except Exception as e:
-        poem = f"⚠️ Error: {e}"
+        client = Groq(api_key=api_key)
 
-    # Display Kelly's response
-    with st.chat_message("assistant"):
-        st.markdown(poem)
-    st.session_state.messages.append({"role": "assistant", "content": poem})
+        # Prepare Kelly's poetic, skeptical prompt
+        prompt = f"""
+        You are 'Kelly', an AI Scientist Chatbot who always responds in the form of a poem.
+        Respond to this question in a skeptical, analytical and professional poetic tone.
+        Question: {question}
+        """
+
+        response = client.chat.completions.create(
+            model="llama3-70b-8192",  # Updated model name
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=200,
+            temperature=0.7
+        )
+
+        # Access and display Kelly's poetic reply
+        reply = response.choices[0].message.content
+        st.markdown(f"**Kelly's Reply:**\n\n{reply}")
+
+    except Exception as e:
+        st.error(f"⚠️ Error: {str(e)}")
+elif not api_key:
+    st.warning("Please enter your Groq API key to continue.")
