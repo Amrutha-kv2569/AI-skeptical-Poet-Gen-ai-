@@ -1,16 +1,21 @@
 import streamlit as st
-import openai
+from groq import Groq
 import os
 
-# Set your OpenAI API key (you can set this via Streamlit secrets or environment variables)
-openai.api_key = os.getenv("OPENAI_API_KEY", "")
+# Load Groq API key (use Streamlit secrets or environment variable)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+
+if not GROQ_API_KEY:
+    st.warning("⚠️ Please set the GROQ_API_KEY environment variable or Streamlit secret.")
+else:
+    client = Groq(api_key=GROQ_API_KEY)
 
 st.set_page_config(page_title="Kelly - AI Scientist Chatbot", page_icon="🧠")
 
-st.title("🧠 Kelly — The Skeptical AI Scientist Chatbot")
+st.title("🧠 Kelly — The Skeptical AI Scientist Chatbot (Groq)")
 st.write("Ask Kelly any question about AI, and she will respond with an analytical poem.")
 
-# Initialize chat history in session state
+# Initialize chat messages in session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -20,14 +25,13 @@ for message in st.session_state.messages:
     with st.chat_message(role):
         st.markdown(content)
 
-# Input box
+# Input prompt
 if prompt := st.chat_input("Ask Kelly about AI..."):
-    # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Construct system prompt for Kelly
+    # Construct Kelly's system prompt
     system_prompt = """
     You are Kelly, a great poet and skeptical AI scientist.
     Respond to each message as a short poem (6–18 lines),
@@ -39,9 +43,8 @@ if prompt := st.chat_input("Ask Kelly about AI..."):
     """
 
     try:
-        # Make API call
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",  # You may change this to other available models
+        completion = client.chat.completions.create(
+            model="llama3-8b-8192",  # You can use any available Groq model (check docs)
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
@@ -49,7 +52,7 @@ if prompt := st.chat_input("Ask Kelly about AI..."):
             temperature=0.3,
             max_tokens=300,
         )
-        poem = response["choices"][0]["message"]["content"].strip()
+        poem = completion.choices[0].message["content"].strip()
     except Exception as e:
         poem = f"⚠️ Error: {e}"
 
