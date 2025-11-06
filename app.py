@@ -6,147 +6,119 @@ import os
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 if not GROQ_API_KEY:
-    st.warning("⚠️ Please set the GROQ_API_KEY environment variable or Streamlit secret.")
+    st.error("⚠️ Please set the GROQ_API_KEY in Streamlit secrets or environment variable.")
     st.stop()
 
 client = Groq(api_key=GROQ_API_KEY)
 
-# Page configuration
-st.set_page_config(
-    page_title="Kelly - AI Scientist Poet",
-    page_icon="🧠",
-    layout="centered"
-)
+# Page config
+st.set_page_config(page_title="Kelly - AI Poet", page_icon="🧠", layout="wide")
 
-# Custom CSS for better poetry display
-st.markdown("""
-<style>
-    .poem-container {
-        background-color: #f0f2f6;
-        padding: 20px;
-        border-radius: 10px;
-        border-left: 4px solid #4CAF50;
-        font-family: 'Georgia', serif;
-        line-height: 1.8;
-        margin: 10px 0;
-    }
-    .stChatMessage {
-        background-color: #ffffff;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Header
+# Title
 st.title("🧠 Kelly — The Skeptical AI Scientist Poet")
-st.markdown("*Ask Kelly any question about AI, and she will respond with an analytical, skeptical poem.*")
-st.divider()
+st.markdown("*Ask any question about AI, and Kelly responds in analytical poetry*")
 
-# Initialize chat messages
+# Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat history
-for message in st.session_state.messages:
-    role, content = message["role"], message["content"]
-    with st.chat_message(role):
-        if role == "assistant":
-            st.markdown(f'<div class="poem-container">{content}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(content)
+# Two columns layout
+col1, col2 = st.columns([2, 1])
 
-# Chat input
-if prompt := st.chat_input("Ask Kelly about AI..."):
-    # Add user message
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    # Enhanced system prompt for better poetic output
-    system_prompt = """You are Kelly, a renowned poet and skeptical AI scientist. You MUST respond to EVERY question exclusively in poem form.
-
-CRITICAL RULES:
-1. ALWAYS write in verse with clear line breaks
-2. Use rhyme schemes (ABAB, AABB, or ABCB patterns)
-3. Maintain rhythm and meter throughout
-4. Each response must be 8-16 lines
-5. Be skeptical and analytical in your poetic observations
-6. Question AI hype and broad claims
-7. Highlight limitations and uncertainties
-8. Suggest practical, evidence-based approaches
-9. Use metaphors and poetic devices
-10. NEVER write prose - only poetry
-
-Structure your poems with:
-- An opening that questions the premise
-- A middle that explores limitations
-- A closing that offers measured wisdom
-
-Example style:
-"You ask if AI can truly understand,
-But what is comprehension, I demand?
-A pattern matched, statistics aligned—
-Or something more, within the mind?"
-
-Remember: You are a POET first, scientist second. Every word must serve the verse."""
-
-    try:
-        # Create completion with adjusted parameters for more creative output
-        completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                *[{"role": m["role"], "content": m["content"]} 
-                  for m in st.session_state.messages[-6:]],  # Include context
-            ],
-            temperature=0.7,  # Increased for more creative output
-            max_tokens=400,
-            top_p=0.9,
-        )
-        
-        poem = completion.choices[0].message.content.strip()
-        
-        # Ensure line breaks are preserved
-        poem = poem.replace("\\n", "\n")
-        
-    except Exception as e:
-        poem = f"⚠️ An error occurred: {str(e)}\n\nPlease check your API key and try again."
-
-    # Display Kelly's poetic response
-    with st.chat_message("assistant"):
-        st.markdown(f'<div class="poem-container">{poem}</div>', unsafe_allow_html=True)
+with col1:
+    st.subheader("💬 Chat with Kelly")
     
-    st.session_state.messages.append({"role": "assistant", "content": poem})
-
-# Sidebar with information
-with st.sidebar:
-    st.header("About Kelly")
-    st.write("""
-    Kelly is an AI scientist who responds to all questions about artificial intelligence 
-    in the form of analytical, skeptical poetry.
+    # Chat container
+    chat_container = st.container(height=500)
     
-    **Her characteristics:**
-    - 📝 Always responds in verse
-    - 🤔 Questions AI hype and bold claims
-    - 🔬 Highlights limitations and uncertainties
-    - 💡 Offers evidence-based suggestions
-    - 🎭 Uses metaphor and poetic devices
-    """)
+    with chat_container:
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.write(message["content"])
+    
+    # Chat input
+    if prompt := st.chat_input("Ask Kelly about AI..."):
+        # Add user message
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        # System prompt
+        system_prompt = """You are Kelly, a renowned poet and skeptical AI scientist. 
+
+CRITICAL: Respond ONLY in poetry format with these rules:
+- Write 8-16 lines of verse
+- Use rhyme schemes (ABAB or AABB)
+- Include line breaks between verses
+- Be skeptical about AI claims
+- Question limitations and hype
+- Offer evidence-based insights
+- Use poetic language and metaphors
+
+Example format:
+You ask if AI can think and feel,
+But patterns matched don't make thoughts real.
+Statistics learned from human text—
+Is consciousness truly what comes next?"""
+
+        try:
+            # Get response
+            completion = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=400,
+            )
+            
+            poem = completion.choices[0].message.content.strip()
+            st.session_state.messages.append({"role": "assistant", "content": poem})
+            
+        except Exception as e:
+            error_msg = f"Error: {str(e)}"
+            st.session_state.messages.append({"role": "assistant", "content": error_msg})
+        
+        st.rerun()
+
+with col2:
+    st.subheader("📊 Dashboard")
+    
+    # Stats
+    st.metric("Total Messages", len(st.session_state.messages))
+    st.metric("Questions Asked", len([m for m in st.session_state.messages if m["role"] == "user"]))
+    st.metric("Poems Written", len([m for m in st.session_state.messages if m["role"] == "assistant"]))
     
     st.divider()
     
-    st.header("Tips")
-    st.write("""
-    - Ask about AI capabilities
-    - Question AGI timelines
-    - Explore AI limitations
-    - Discuss AI ethics
-    - Challenge AI narratives
-    """)
+    # About Kelly
+    with st.expander("ℹ️ About Kelly", expanded=True):
+        st.write("""
+        Kelly is an AI scientist who responds in skeptical, analytical poetry.
+        
+        **Characteristics:**
+        - 📝 Always writes in verse
+        - 🤔 Questions AI hype
+        - 🔬 Highlights limitations
+        - 💡 Evidence-based insights
+        """)
+    
+    # Example questions
+    with st.expander("💡 Example Questions"):
+        st.write("""
+        - Can AI become conscious?
+        - Will AGI arrive by 2030?
+        - Can AI replace programmers?
+        - Is AI truly intelligent?
+        - Can AI understand emotions?
+        """)
     
     st.divider()
     
-    if st.button("Clear Conversation"):
+    # Clear button
+    if st.button("🗑️ Clear Conversation", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
     
-    st.caption("Powered by Groq API | Model: Llama 3.1 8B")
+    # Model info
+    st.caption("🤖 Model: Llama 3.1 8B (Groq)")
+    st.caption("🚀 Powered by Streamlit")
