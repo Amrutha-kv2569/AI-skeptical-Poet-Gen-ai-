@@ -44,7 +44,7 @@ if prompt := st.chat_input("Ask Kelly about AI..."):
 
     try:
         completion = client.chat.completions.create(
-            model="llama3-8b-8192",  # You can use any available Groq model (check docs)
+            model="llama-3.1-8b-instant",  # Updated working Groq model
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
