@@ -44,7 +44,7 @@ if prompt := st.chat_input("Ask Kelly about AI..."):
 
     try:
         completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",  # Updated working Groq model
+            model="llama-3.1-8b-instant",  # Supported model
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
@@ -52,7 +52,8 @@ if prompt := st.chat_input("Ask Kelly about AI..."):
             temperature=0.3,
             max_tokens=300,
         )
-        poem = completion.choices[0].message["content"].strip()
+        # Correct way to access message content:
+        poem = completion.choices[0].message.content.strip()
     except Exception as e:
         poem = f"⚠️ Error: {e}"
 
